@@ -1,0 +1,25 @@
+library(tidyverse)
+train <- read_csv('train (2).csv')
+test <- read_csv('test.csv')
+str(train)
+str(test)
+summary(train)
+train <- train[-1]
+test <- test
+train <-train |>  mutate(Class=as.factor(Class))
+train |> count(Class)
+set.seed(123)
+library(tidymodels)
+split <- initial_split(train,0.3,strata=Class)
+train1 <- training(split)
+valid <- testing(split)
+logit <- logistic_reg() |> set_engine('glm')
+rec <- recipe(Class~.,data=train1)|> themis::step_smote(Class)
+wflow_logit <- workflow() |> add_model(logit) |> add_recipe(rec)
+fit1 <- fit(wflow_logit,train1)
+pred <- predict(fit1,valid)
+augment(fit1,valid) |> conf_mat(truth=Class,estimate=.pred_class) |> summary(event_level='second')
+augment(fit1,valid) |> roc_auc(truth=Class,.pred_1,event_level='second')
+pred2 <- predict(fit1, test)
+pred2
+
